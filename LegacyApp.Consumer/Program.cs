@@ -10,8 +10,10 @@ internal class Program
     public static void AddUser(string[] args)
     {
         // DO NOT CHANGE THIS FILE AT ALL
-
-        var userService = new UserService();
+        var clientRepository = new ClientRepository();
+        var userCreditServiceClient = new UserCreditServiceClient();
+        var userDataAccess = new UserDataAccess();
+        var userService = new UserService(clientRepository, userCreditServiceClient, userDataAccess);
         var addResult = userService.AddUser("John", 
             "Doe", 
             "John.doe@gmail.com", 

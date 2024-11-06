@@ -5,9 +5,9 @@ using Microsoft.Data.SqlClient;
 
 namespace LegacyApp;
 
-public static class UserDataAccess
+public class UserDataAccess : IUserDataAccess
 {
-    public static void AddUser(User user)
+    public void AddUser(User user)
     {
         // According to the README.md file, the method and the class should be static. So, I'm not using a constructor to get the connection string.
         var connectionString = ConfigurationManager.ConnectionStrings["appDatabase"].ConnectionString;

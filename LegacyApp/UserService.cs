@@ -4,6 +4,17 @@ namespace LegacyApp;
 
 public class UserService
 {
+    private readonly IClientRepository _clientRepository;
+    private readonly IUserCreditService _userCreditService;
+    private readonly IUserDataAccess _userDataAccess;
+
+    public UserService(IClientRepository clientRepository, IUserCreditService userCreditService, IUserDataAccess userDataAccess)
+    {
+        _clientRepository = clientRepository;
+        _userCreditService = userCreditService;
+        _userDataAccess = userDataAccess;
+    }
+
     public bool AddUser(string firstName, string surname, string email, DateTime dateOfBirth, int clientId)
     {
         if (!IsValidName(firstName, surname) || !IsValidEmail(email) || !IsValidAge(dateOfBirth))
@@ -19,7 +30,7 @@ public class UserService
             return false;
         }
 
-        UserDataAccess.AddUser(user);
+        _userDataAccess.AddUser(user);
         return true;
     }
 
@@ -41,7 +52,7 @@ public class UserService
 
     private static bool IsValidAge(DateTime dateOfBirth)
     {
-        var now = DateTime.Now;
+        var now = DateTime.Now; // TODO: Use a clock interface from a library like NodaTime for better testability and maintainability
         var age = now.Year - dateOfBirth.Year;
         if (now.Month < dateOfBirth.Month || (now.Month == dateOfBirth.Month && now.Day < dateOfBirth.Day))
         {
@@ -51,10 +62,9 @@ public class UserService
         return age >= 21;
     }
 
-    private static Client GetClientById(int clientId)
+    private Client GetClientById(int clientId)
     {
-        var clientRepository = new ClientRepository();
-        return clientRepository.GetById(clientId);
+        return _clientRepository.GetById(clientId);
     }
 
     private static User CreateUser(string firstName, string surname, string email, DateTime dateOfBirth, Client client)
@@ -69,7 +79,7 @@ public class UserService
         };
     }
 
-    private static bool IsCreditLimitSufficient(User user, Client client)
+    private bool IsCreditLimitSufficient(User user, Client client)
     {
         if (client.Name == "VeryImportantClient")
         {
@@ -89,9 +99,8 @@ public class UserService
         return user.CreditLimit >= 500;
     }
 
-    private static int GetCreditLimit(User user)
+    private int GetCreditLimit(User user)
     {
-        using var userCreditService = new UserCreditServiceClient();
-        return userCreditService.GetCreditLimit(user.Firstname, user.Surname, user.DateOfBirth);
+        return _userCreditService.GetCreditLimit(user.Firstname, user.Surname, user.DateOfBirth);
     }
 }

@@ -5,7 +5,7 @@ using Microsoft.Data.SqlClient;
 
 namespace LegacyApp;
 
-public class ClientRepository
+public class ClientRepository : IClientRepository
 {
     private readonly string _connectionString;
 
