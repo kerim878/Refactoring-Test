@@ -1,42 +1,50 @@
-﻿using System;  
-using System.Configuration;
+﻿using System.Configuration;
 using System.Data;
-using System.Data.SqlClient;
+using LegacyApp.Extensions;
+using Microsoft.Data.SqlClient;
 
-namespace LegacyApp
+namespace LegacyApp;
+
+public static class UserDataAccess
 {
-    public static class UserDataAccess
+    public static void AddUser(User user)
     {
-        public static void AddUser(User user)
+        // According to the README.md file, the method and the class should be static. So, I'm not using a constructor to get the connection string.
+        var connectionString = ConfigurationManager.ConnectionStrings["appDatabase"].ConnectionString;
+        using var connection = new SqlConnection(connectionString);
+
+        try
         {
-            var connectionString = ConfigurationManager.ConnectionStrings["appDatabase"].ConnectionString;
-
-            using (var connection = new SqlConnection(connectionString))
+            var parameters = new Dictionary<string, object>
             {
-                var command = new SqlCommand
-                {
-                    Connection = connection,
-                    CommandType = CommandType.StoredProcedure,
-                    CommandText = "uspAddUser"
-                };
+                { "@Firstname", user.Firstname },
+                { "@Surname", user.Surname },
+                { "@DateOfBirth", user.DateOfBirth },
+                { "@EmailAddress", user.EmailAddress },
+                { "@HasCreditLimit", user.HasCreditLimit },
+                { "@CreditLimit", user.CreditLimit },
+                { "@ClientId", user.Client.Id }
+            };
 
-                var firstNameParameter = new SqlParameter("@Firstname", SqlDbType.VarChar, 50) {Value = user.Firstname };
-                command.Parameters.Add(firstNameParameter);
-                var surnameParameter = new SqlParameter("@Surname", SqlDbType.VarChar, 50) {Value = user.Surname };
-                command.Parameters.Add(surnameParameter);
-                var dateOfBirthParameter = new SqlParameter("@DateOfBirth", SqlDbType.DateTime) {Value = user.DateOfBirth };
-                command.Parameters.Add(dateOfBirthParameter);
-                var emailAddressParameter = new SqlParameter("@EmailAddress", SqlDbType.VarChar, 50) {Value = user.EmailAddress };
-                command.Parameters.Add(emailAddressParameter);
-                var hasCreditLimitParameter = new SqlParameter("@HasCreditLimit", SqlDbType.Bit) {Value = user.HasCreditLimit };
-                command.Parameters.Add(hasCreditLimitParameter);
-                var creditLimitParameter = new SqlParameter("@CreditLimit", SqlDbType.Int) {Value = user.CreditLimit };
-                command.Parameters.Add(creditLimitParameter);
-                var clientIdParameter = new SqlParameter("@ClientId", SqlDbType.Int) {Value = user.Client.Id };
-                command.Parameters.Add(clientIdParameter);
-                
-                connection.Open();
-                command.ExecuteNonQuery();
+            var command = connection.CreateCommand("uspAddUser", CommandType.StoredProcedure, parameters);
+            connection.Open();
+
+            var result = command.ExecuteNonQuery();
+            if (result == 0)
+            {
+                throw new Exception("User not added");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            throw;
+        }
+        finally
+        {
+            if (connection.State == ConnectionState.Open)
+            {
+                connection.Close();
             }
         }
     }

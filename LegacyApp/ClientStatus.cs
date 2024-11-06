@@ -1,7 +1,6 @@
-﻿namespace LegacyApp
+﻿namespace LegacyApp;
+
+public enum ClientStatus
 {
-    public enum ClientStatus
-    {
-        none = 0
-    }
+    None = 0
 }

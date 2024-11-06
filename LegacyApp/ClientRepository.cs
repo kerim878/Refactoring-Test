@@ -1,42 +1,51 @@
 ﻿using System.Configuration;
 using System.Data;
-using System.Data.SqlClient;
+using LegacyApp.Extensions;
+using Microsoft.Data.SqlClient;
 
-namespace LegacyApp
+namespace LegacyApp;
+
+public class ClientRepository
 {
-    public class ClientRepository
+    private readonly string _connectionString;
+
+    public ClientRepository()
     {
-        public Client GetById(int id)
+        _connectionString = ConfigurationManager.ConnectionStrings["appDatabase"].ConnectionString;
+    }
+
+    public Client GetById(int id)
+    {
+        using var connection = new SqlConnection(_connectionString);
+
+        try
         {
-            Client client = null;
-            var connectionString = ConfigurationManager.ConnectionStrings["appDatabase"].ConnectionString;
-
-            using (var connection = new SqlConnection(connectionString))
+            var parameters = new Dictionary<string, object>
             {
-                var command = new SqlCommand
-                {
-                    Connection = connection,
-                    CommandType = CommandType.StoredProcedure,
-                    CommandText = "uspGetClientById"
-                };
+                { "@clientId", id }
+            };
 
-                var parametr = new SqlParameter("@clientId", SqlDbType.Int) { Value = id };
-                command.Parameters.Add(parametr);
-                
-                connection.Open();
-                var reader = command.ExecuteReader(CommandBehavior.CloseConnection);
-                while (reader.Read())
-                {
-                    client = new Client
-                    {
-                        Id = int.Parse(reader["ClientId"].ToString()),
-                        Name = reader["Name"].ToString(),
-                        ClientStatus = (ClientStatus) int.Parse(reader["ClientStatus"].ToString())
-                    };
-                }
-            }
+            using var command = connection.CreateCommand("uspGetClientById", CommandType.StoredProcedure, parameters);
 
-            return client;
+            connection.Open();
+            using var reader = command.ExecuteReader(CommandBehavior.CloseConnection);
+
+            return reader.Read() ? MapToClient(reader) : null;
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred: {ex.Message}");
+            throw;
+        }
+    }
+
+    private static Client MapToClient(IDataRecord record)
+    {
+        return new Client
+        {
+            Id = Convert.ToInt32(record["ClientId"]),
+            Name = record["Name"].ToString(),
+            ClientStatus = (ClientStatus)Convert.ToInt32(record["ClientStatus"])
+        };
     }
 }
